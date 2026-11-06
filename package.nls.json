@@ -1,0 +1,9 @@
+{
+  "extension.description": "Compare a classic .sqlproj with a local SQL Server database and apply only the objects you choose.",
+  "view.projects": "Projects",
+  "command.open": "Open",
+  "command.clean": "Clean",
+  "command.build": "Build",
+  "command.publish": "Publish",
+  "command.compare": "Compare"
+}

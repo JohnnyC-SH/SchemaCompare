@@ -1,0 +1,16 @@
+.vscode/**
+.vscode-test/**
+.build-test/**
+docs/superpowers/**
+AGENTS.md
+ContextResume.md
+.gitignore
+**/*.vsix
+tools/SqlProjectBuild/bin/**
+tools/SqlProjectBuild/obj/**
+**/tsconfig.json
+**/*.map
+**/*.ts
+!node_modules/**
+node_modules/@types/**
+node_modules/typescript/**

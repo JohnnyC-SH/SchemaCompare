@@ -1,0 +1,129 @@
+{
+  "name": "johnny-schema-compare",
+  "displayName": "Johnny Schema Compare",
+  "description": "%extension.description%",
+  "version": "0.0.2",
+  "publisher": "t1gr3ju4nmx",
+  "icon": "Logo/Comparar128.png",
+  "license": "MIT",
+  "sponsor": {
+    "url": "https://paypal.me/SIPTecMX"
+  },
+  "author": {
+    "name": "Johnny Sánchez",
+    "url": "https://www.johnnycsh.com"
+  },
+  "homepage": "https://www.johnnycsh.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JohnnyC-SH/SchemaCompare.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JohnnyC-SH/SchemaCompare/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "qna": "marketplace",
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "sql",
+    "sqlproj",
+    "sql-server",
+    "schema",
+    "schema-compare",
+    "ssdt",
+    "dacpac",
+    "dacfx"
+  ],
+  "activationEvents": [
+    "onView:johnnySchemaCompare.main",
+    "onCommand:johnnySchemaCompare.open",
+    "onCommand:johnnySchemaCompare.clean",
+    "onCommand:johnnySchemaCompare.build",
+    "onCommand:johnnySchemaCompare.publish",
+    "onCommand:johnnySchemaCompare.compare"
+  ],
+  "l10n": "./l10n",
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "johnnySchemaCompare",
+          "title": "Johnny Schema Compare",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "johnnySchemaCompare": [
+        {
+          "id": "johnnySchemaCompare.main",
+          "name": "%view.projects%"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "johnnySchemaCompare.open",
+        "title": "%command.open%",
+        "category": "Johnny Schema Compare",
+        "icon": {
+          "light": "media/activitybar.svg",
+          "dark": "media/activitybar.svg"
+        }
+      },
+      {
+        "command": "johnnySchemaCompare.clean",
+        "title": "%command.clean%",
+        "category": "Johnny Schema Compare",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "johnnySchemaCompare.build",
+        "title": "%command.build%",
+        "category": "Johnny Schema Compare",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "johnnySchemaCompare.publish",
+        "title": "%command.publish%",
+        "category": "Johnny Schema Compare",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "johnnySchemaCompare.compare",
+        "title": "%command.compare%",
+        "category": "Johnny Schema Compare",
+        "icon": "$(diff)"
+      }
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "johnnySchemaCompare.clean",
+          "when": "view == johnnySchemaCompare.main && viewItem == sqlProject",
+          "group": "1_schema@1"
+        },
+        {
+          "command": "johnnySchemaCompare.build",
+          "when": "view == johnnySchemaCompare.main && viewItem == sqlProject",
+          "group": "1_schema@2"
+        },
+        {
+          "command": "johnnySchemaCompare.publish",
+          "when": "view == johnnySchemaCompare.main && viewItem == sqlProject",
+          "group": "1_schema@3"
+        },
+        {
+          "command": "johnnySchemaCompare.compare",
+          "when": "view == johnnySchemaCompare.main && viewItem == sqlProject",
+          "group": "1_schema@4"
+        }
+      ]
+    }
+  }
+}

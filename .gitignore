@@ -1,0 +1,10 @@
+node_modules
+out
+*.vsix
+tools/SqlProjectBuild/bin/
+tools/SqlProjectBuild/obj/
+tools/SqlProjectBuild/publish/
+.build-test/
+.DS_Store
+*.log
+.vscode-test/
