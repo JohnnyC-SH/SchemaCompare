@@ -22,7 +22,7 @@ No es un fork de `microsoft/vscode-mssql`. Esa extensión es enorme y el dolor r
 
 ### Entra
 
-- Comparar proyecto contra base, y al revés.
+- Comparar proyecto contra base, y al revés. Entran tablas, tipos de tabla (`CREATE TYPE … AS TABLE`, carpeta `User Defined Types`), procedimientos, vistas, funciones y desencadenadores.
 - Parar una comparación en curso.
 - Lista de diferencias con un checkbox por objeto.
 - Seleccionar todo, y poder quitar objetos sueltos después.

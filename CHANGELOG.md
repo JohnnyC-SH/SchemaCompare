@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.3
+
+- Added user-defined table types (`CREATE TYPE … AS TABLE`) to compare and apply.
+- Se agregaron los tipos de tabla (`CREATE TYPE … AS TABLE`) a la comparación y al aplicar.
+
 ## 0.0.2
 
 - Marketplace page includes the icon, this overview in English and Spanish, and screenshots.

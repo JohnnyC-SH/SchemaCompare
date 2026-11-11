@@ -13,14 +13,27 @@ const TYPE_FOLDERS = {
   functions: "Function",
   views: "View",
   triggers: "Trigger",
+  "user defined types": "TableType",
+  "user-defined types": "TableType",
+  "user defined table types": "TableType",
+  "user-defined table types": "TableType",
+  "table types": "TableType",
 };
 const TYPE_LABEL = {
   Table: "Table",
+  TableType: "Table type",
   Procedure: "Procedure",
   Function: "Function",
   View: "View",
   Trigger: "Trigger",
 };
+const SQL_TYPES = new Set([
+  "bigint", "binary", "bit", "char", "date", "datetime", "datetime2", "datetimeoffset",
+  "decimal", "float", "geography", "geometry", "hierarchyid", "image", "int", "money",
+  "nchar", "ntext", "numeric", "nvarchar", "real", "rowversion", "smalldatetime",
+  "smallint", "smallmoney", "sql_variant", "text", "time", "timestamp", "tinyint",
+  "uniqueidentifier", "varbinary", "varchar", "xml",
+]);
 const ACTION_LABEL = {
   add: "Add",
   change: "Change",
@@ -79,8 +92,10 @@ async function sideScript(file, name, row, database) {
   if (!name || !database || !row.schema || !row.name) {
     return "";
   }
-  if (row.type === "Table") {
-    const script = scriptTable(row.schema, row.name);
+  if (row.type === "Table" || row.type === "TableType") {
+    const script = row.type === "Table"
+      ? scriptTable(row.schema, row.name)
+      : scriptTableType(row.schema, row.name);
     if (script) {
       return script;
     }
@@ -145,13 +160,17 @@ function collectProjectObjects(projectFile) {
         if (!file.toLowerCase().endsWith(".sql")) {
           continue;
         }
+        const fullPath = path.join(folder, file);
+        if (type === "TableType" && !isTableTypeScript(fs.readFileSync(fullPath, "utf8"))) {
+          continue;
+        }
         const name = file.replace(/\.sql$/i, "");
         objects.push({
           schema: entry.name,
           name,
           type,
           fullName: `${entry.name}.${name}`,
-          file: path.join(folder, file),
+          file: fullPath,
         });
       }
     }
@@ -171,7 +190,12 @@ async function queryDatabaseObjects(database) {
     "WHEN 'IF' THEN 'Function' WHEN 'TR' THEN 'Trigger' ELSE 'Other' END",
     "FROM sys.objects o",
     "INNER JOIN sys.schemas s ON s.schema_id = o.schema_id",
-    "WHERE o.is_ms_shipped = 0 AND o.type IN ('U','P','PC','V','FN','TF','IF','TR');",
+    "WHERE o.is_ms_shipped = 0 AND o.type IN ('U','P','PC','V','FN','TF','IF','TR')",
+    "UNION ALL",
+    "SELECT s.name + N'|' + tt.name + N'|TableType'",
+    "FROM sys.table_types tt",
+    "INNER JOIN sys.schemas s ON s.schema_id = tt.schema_id",
+    "WHERE tt.is_user_defined = 1;",
   ].join(" ");
   const stdout = await runLocalSql(database, sql, false);
   const objects = [];
@@ -234,7 +258,7 @@ function sameObject(sourceItem, targetItem, source, target) {
   if (!project || !project.file || !fs.existsSync(project.file)) {
     return true;
   }
-  if (project.type === "Table") {
+  if (project.type === "Table" || project.type === "TableType") {
     return tableMatches(project);
   }
   const dbText = catalogCache.modules.get(objectKey(project));
@@ -264,21 +288,38 @@ function normalizeSql(text) {
     .toLowerCase();
 }
 
+function isTableTypeScript(text) {
+  return /\bcreate\s+type\b[\s\S]*?\bas\s+table\b/i.test(String(text || ""));
+}
+
+function parseColumnLine(line) {
+  const bracketed = line.match(/^\s*\[([^\]]+)\]\s+([A-Za-z][A-Za-z0-9_]*)\s*(?:\(\s*([^)]*?)\s*\))?/);
+  if (bracketed) {
+    const type = bracketed[2].toLowerCase();
+    if (["constraint", "primary", "unique", "foreign", "index", "key", "on", "with"].includes(type)) {
+      return null;
+    }
+    return { name: bracketed[1], type, args: bracketed[3] || "" };
+  }
+  const plain = line.match(/^\s*([A-Za-z_][\w]*)\s+([A-Za-z][A-Za-z0-9_]*)\s*(?:\(\s*([^)]*?)\s*\))?/);
+  if (!plain || !SQL_TYPES.has(plain[2].toLowerCase())) {
+    return null;
+  }
+  return { name: plain[1], type: plain[2].toLowerCase(), args: plain[3] || "" };
+}
+
 function signatureFromFile(text) {
   const columns = [];
   for (const line of String(text || "").split(/\r?\n/)) {
-    const match = line.match(/^\s*\[([^\]]+)\]\s+([A-Za-z][A-Za-z0-9_]*)\s*(?:\(\s*([^)]*?)\s*\))?/);
-    if (!match) {
+    const column = parseColumnLine(line);
+    if (!column) {
       continue;
     }
-    const type = match[2].toLowerCase();
-    if (["constraint", "primary", "unique", "foreign", "index", "key", "on", "with"].includes(type)) {
-      continue;
-    }
-    const args = normalizeTypeArgs(type, (match[3] || "").replace(/\s+/g, "").toLowerCase());
+    const type = column.type;
+    const args = normalizeTypeArgs(type, column.args.replace(/\s+/g, "").toLowerCase());
     const nullable = /\bnot\s+null\b/i.test(line) ? "0" : /\bnull\b/i.test(line) ? "1" : "0";
     const identity = line.match(/\bidentity\s*\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/i);
-    columns.push([match[1].toLowerCase(), type, args, nullable, identity ? "1" : "0", identity ? String(Number(identity[1])) : "", identity ? String(Number(identity[2])) : ""].join("|"));
+    columns.push([column.name.toLowerCase(), type, args, nullable, identity ? "1" : "0", identity ? String(Number(identity[1])) : "", identity ? String(Number(identity[2])) : ""].join("|"));
   }
   if (!columns.length) {
     return "";
@@ -369,6 +410,26 @@ function scriptTable(schema, name) {
   return `CREATE TABLE [${schema}].[${name}] (\n${lines.join(",\n")}\n);`;
 }
 
+function scriptTableType(schema, name) {
+  const table = catalogCache.tables.get(tableKey(schema, name));
+  if (!table || !table.columns.length) {
+    return "";
+  }
+  const lines = table.columns.map((column) => {
+    const args = typeArg(column);
+    let line = `    [${column.name}] ${column.type}${args ? `(${args})` : ""}`;
+    if (column.identity) {
+      line += ` IDENTITY(${column.seed}, ${column.increment})`;
+    }
+    line += column.nullable ? " NULL" : " NOT NULL";
+    return line;
+  });
+  if (table.pk.length) {
+    lines.push(`    PRIMARY KEY (${table.pk.map((item) => `[${item}]`).join(", ")})`);
+  }
+  return `CREATE TYPE [${schema}].[${name}] AS TABLE (\n${lines.join(",\n")}\n);`;
+}
+
 function tableKey(schema, name) {
   return `${String(schema).toLowerCase()}|${String(name).toLowerCase()}`;
 }
@@ -437,6 +498,20 @@ async function queryTableCatalog(database) {
     "WHERE o.is_ms_shipped = 0 AND o.type = 'U'",
     "ORDER BY s.name, o.name, c.column_id;",
   ].join(" ");
+  const typeColumnsSql = [
+    "SET NOCOUNT ON;",
+    "SELECT s.name + N'|' + tt.name + N'|' + CAST(c.column_id AS nvarchar(10)) + N'|' + c.name + N'|'",
+    "+ TYPE_NAME(c.user_type_id) + N'|' + CAST(c.max_length AS nvarchar(10)) + N'|'",
+    "+ CAST(c.precision AS nvarchar(10)) + N'|' + CAST(c.scale AS nvarchar(10)) + N'|'",
+    "+ CAST(c.is_nullable AS nvarchar(1)) + N'|' + CAST(c.is_identity AS nvarchar(1)) + N'|'",
+    "+ ISNULL(CAST(ic.seed_value AS nvarchar(40)), N'') + N'|' + ISNULL(CAST(ic.increment_value AS nvarchar(40)), N'')",
+    "FROM sys.columns c",
+    "INNER JOIN sys.table_types tt ON tt.type_table_object_id = c.object_id",
+    "INNER JOIN sys.schemas s ON s.schema_id = tt.schema_id",
+    "LEFT JOIN sys.identity_columns ic ON ic.object_id = c.object_id AND ic.column_id = c.column_id",
+    "WHERE tt.is_user_defined = 1",
+    "ORDER BY s.name, tt.name, c.column_id;",
+  ].join(" ");
   const pkSql = [
     "SET NOCOUNT ON;",
     "SELECT s.name + N'|' + o.name + N'|' + CAST(ic.key_ordinal AS nvarchar(10)) + N'|' + c.name",
@@ -448,6 +523,17 @@ async function queryTableCatalog(database) {
     "WHERE i.is_primary_key = 1 AND o.type = 'U' AND ic.is_included_column = 0",
     "ORDER BY s.name, o.name, ic.key_ordinal;",
   ].join(" ");
+  const typePkSql = [
+    "SET NOCOUNT ON;",
+    "SELECT s.name + N'|' + tt.name + N'|' + CAST(ic.key_ordinal AS nvarchar(10)) + N'|' + c.name",
+    "FROM sys.indexes i",
+    "INNER JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id",
+    "INNER JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id",
+    "INNER JOIN sys.table_types tt ON tt.type_table_object_id = i.object_id",
+    "INNER JOIN sys.schemas s ON s.schema_id = tt.schema_id",
+    "WHERE i.is_primary_key = 1 AND tt.is_user_defined = 1 AND ic.is_included_column = 0",
+    "ORDER BY s.name, tt.name, ic.key_ordinal;",
+  ].join(" ");
   const tables = new Map();
   const ensure = (schema, name) => {
     const key = tableKey(schema, name);
@@ -456,7 +542,11 @@ async function queryTableCatalog(database) {
     }
     return tables.get(key);
   };
-  for (const line of (await runLocalSql(database, columnsSql, false)).split(/\r?\n/)) {
+  const columnLines = [
+    ...(await runLocalSql(database, columnsSql, false)).split(/\r?\n/),
+    ...(await runLocalSql(database, typeColumnsSql, false)).split(/\r?\n/),
+  ];
+  for (const line of columnLines) {
     const parts = line.trim().split("|");
     if (parts.length < 12 || /rows affected/i.test(line)) {
       continue;
@@ -474,7 +564,11 @@ async function queryTableCatalog(database) {
       increment: parts[11],
     });
   }
-  for (const line of (await runLocalSql(database, pkSql, false)).split(/\r?\n/)) {
+  const pkLines = [
+    ...(await runLocalSql(database, pkSql, false)).split(/\r?\n/),
+    ...(await runLocalSql(database, typePkSql, false)).split(/\r?\n/),
+  ];
+  for (const line of pkLines) {
     const parts = line.trim().split("|");
     if (parts.length < 4 || /rows affected/i.test(line)) {
       continue;

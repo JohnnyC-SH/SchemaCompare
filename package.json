@@ -2,7 +2,7 @@
   "name": "johnny-schema-compare",
   "displayName": "Johnny Schema Compare",
   "description": "%extension.description%",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "t1gr3ju4nmx",
   "icon": "Logo/Comparar128.png",
   "license": "MIT",

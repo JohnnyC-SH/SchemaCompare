@@ -11,11 +11,13 @@ const TYPE_DIR = {
   Function: "Functions",
   View: "Views",
   Trigger: "Triggers",
+  TableType: "User Defined Types",
 };
 
 function typeName(type) {
   return t({
     Table: "Table",
+    TableType: "Table type",
     Procedure: "Procedure",
     Function: "Function",
     View: "View",
@@ -108,11 +110,15 @@ async function applySelectionToDatabase(source, target, rows, onProgress) {
   const shown = workable.slice(0, 8).map((row) => `${typeName(row.type)} ${row.sourceName || row.targetName} (${actionName(row.action)})`);
   const more = workable.length > shown.length ? "\n" + t("… and {0} more.", workable.length - shown.length) : "";
   const destructive = workable.filter((row) => row.type === "Table" && (row.action === "delete" || row.action === "change"));
+  const typeChanges = workable.filter((row) => row.type === "TableType" && (row.action === "delete" || row.action === "change"));
   const dataNote = destructive.length
     ? "\n" + t("{0} tables are dropped or recreated. Their data is lost.", destructive.length)
     : "";
+  const typeNote = typeChanges.length
+    ? "\n" + t("{0} table types are dropped or recreated.", typeChanges.length)
+    : "";
   const choice = await vscode.window.showWarningMessage(
-    t("Apply {0} objects to database {1}. Only the checked ones. The database will change.", workable.length, database) + dataNote + "\n" + shown.join("\n") + more,
+    t("Apply {0} objects to database {1}. Only the checked ones. The database will change.", workable.length, database) + dataNote + typeNote + "\n" + shown.join("\n") + more,
     { modal: true },
     t("Apply")
   );
@@ -137,14 +143,14 @@ async function applySelectionToDatabase(source, target, rows, onProgress) {
 }
 
 function applyRank(row) {
-  if (row.action === "delete" && row.type !== "Table") return 0;
-  if (row.type === "Table" && (row.action === "delete" || row.action === "change")) return 1;
-  if (row.type === "Table") return 2;
+  if (row.action === "delete" && row.type !== "Table" && row.type !== "TableType") return 0;
+  if ((row.type === "Table" || row.type === "TableType") && (row.action === "delete" || row.action === "change")) return 1;
+  if (row.type === "Table" || row.type === "TableType") return 2;
   return 3;
 }
 
 async function statementFor(row, database) {
-  if (row.type !== "Table") {
+  if (row.type !== "Table" && row.type !== "TableType") {
     return row.action === "delete" ? dropStatement(row) : toCreateOrAlter(await projectScript(row, database));
   }
   if (row.action === "delete") {
@@ -174,6 +180,9 @@ function toCreateOrAlter(sql) {
 }
 
 function dropStatement(row) {
+  if (row.type === "TableType") {
+    return `DROP TYPE IF EXISTS ${quoteIdent(row.schema)}.${quoteIdent(row.name)};`;
+  }
   const kind = { Procedure: "PROCEDURE", Function: "FUNCTION", View: "VIEW", Trigger: "TRIGGER", Table: "TABLE" }[row.type];
   return `DROP ${kind} IF EXISTS ${quoteIdent(row.schema)}.${quoteIdent(row.name)};`;
 }

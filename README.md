@@ -12,6 +12,8 @@ Johnny Schema Compare is an independent side project. If it helped you, a **$1 U
 
 Extension for **Visual Studio Code** and **Cursor** that compares a classic SQL project (`.sqlproj`) with a local SQL Server database, object by object, and applies only what you select.
 
+**0.0.3** adds user-defined table types (`CREATE TYPE … AS TABLE`).
+
 **Author:** [Johnny Sánchez](https://www.johnnycsh.com) · [CreateIT](https://www.createit.com.mx) · [JohnnyC-SH](https://github.com/JohnnyC-SH)  
 Repository: [github.com/JohnnyC-SH/SchemaCompare](https://github.com/JohnnyC-SH/SchemaCompare)
 
@@ -45,7 +47,7 @@ Compare a `.sqlproj` with a local database, in either direction.
 
 | Action | What it does |
 |---|---|
-| Compare | Lists tables, procedures, views, functions, and triggers that differ. |
+| Compare | Lists tables, table types, procedures, views, functions, and triggers that differ. |
 | Apply | Writes only the checked objects. |
 | Build | Compiles the classic project with DacFx and writes `bin/Debug/<AssemblyName>.dacpac`. Errors open in Problems. |
 | Publish | Sends the whole compiled project to a local database you pick. |
@@ -68,7 +70,7 @@ npx @vscode/vsce package
 Install in Cursor or VS Code:
 
 ```bash
-cursor --install-extension johnny-schema-compare-0.0.2.vsix
+cursor --install-extension johnny-schema-compare-0.0.3.vsix
 # or: code --install-extension …
 ```
 
@@ -98,6 +100,8 @@ MIT — see `LICENSE` in this folder.
 ## Español
 
 Extensión para **Visual Studio Code** y **Cursor** que compara un proyecto SQL clásico (`.sqlproj`) con una base local de SQL Server, objeto por objeto, y aplica solo lo que marques.
+
+**0.0.3** agrega los tipos de tabla (`CREATE TYPE … AS TABLE`).
 
 **Autor:** [Johnny Sánchez](https://www.johnnycsh.com) · [CreateIT](https://www.createit.com.mx) · [JohnnyC-SH](https://github.com/JohnnyC-SH)  
 Repositorio: [github.com/JohnnyC-SH/SchemaCompare](https://github.com/JohnnyC-SH/SchemaCompare)
@@ -130,7 +134,7 @@ Compara un `.sqlproj` con una base local, en los dos sentidos.
 
 | Acción | Qué hace |
 |---|---|
-| Comparar | Lista tablas, procedimientos, vistas, funciones y desencadenadores que difieren. |
+| Comparar | Lista tablas, tipos de tabla, procedimientos, vistas, funciones y desencadenadores que difieren. |
 | Aplicar | Escribe solo los objetos marcados. |
 | Compilar | Arma el proyecto clásico con DacFx y escribe `bin/Debug/<AssemblyName>.dacpac`. Los errores se abren en Problemas. |
 | Publicar | Manda el proyecto compilado completo a una base local que eliges. |
@@ -153,7 +157,7 @@ npx @vscode/vsce package
 Instalar en Cursor o VS Code:
 
 ```bash
-cursor --install-extension johnny-schema-compare-0.0.2.vsix
+cursor --install-extension johnny-schema-compare-0.0.3.vsix
 # o: code --install-extension …
 ```
 

@@ -595,7 +595,7 @@
     }
 
     function TYPE_LABEL(type) {
-      return t(({ Table: "Table", Procedure: "Procedure", Function: "Function", View: "View", Trigger: "Trigger" })[type] || type);
+      return t(({ Table: "Table", TableType: "Table type", Procedure: "Procedure", Function: "Function", View: "View", Trigger: "Trigger" })[type] || type);
     }
 
     function bindFilter(panel) {
